@@ -1,0 +1,286 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}결과 - {{ user_session.quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="p-4">
+    <!-- 결과 헤더 -->
+    <div class="text-center mb-6 animate-fade-in">
+        <div class="mb-4">
+            {% if percentage >= 80 %}
+                <span class="text-6xl">🏆</span>
+            {% elif percentage >= 60 %}
+                <span class="text-6xl">🎉</span>
+            {% elif percentage >= 40 %}
+                <span class="text-6xl">👍</span>
+            {% else %}
+                <span class="text-6xl">💪</span>
+            {% endif %}
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">퀴즈 완료!</h1>
+        <p class="text-gray-600">{{ user_session.nickname }}님의 결과입니다</p>
+    </div>
+    
+    <!-- 점수 카드 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6 animate-bounce-in">
+        <div class="text-center">
+            <div class="text-5xl font-bold text-primary-500 mb-2">{{ correct_answers }}</div>
+            <div class="text-gray-600 mb-4">/ {{ total_questions }}개 정답</div>
+            
+            <!-- 점수 바 -->
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+                <div class="h-4 rounded-full progress-bar {% if percentage >= 80 %}bg-green-500{% elif percentage >= 60 %}bg-blue-500{% elif percentage >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                     id="score-bar"></div>
+            </div>
+            
+            <div class="text-2xl font-semibold {% if percentage >= 80 %}text-green-600{% elif percentage >= 60 %}text-blue-600{% elif percentage >= 40 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                {{ percentage|floatformat:1 }}%
+            </div>
+        </div>
+    </div>
+    
+    <!-- 평가 메시지 -->
+    <div class="bg-gradient-to-r {% if percentage >= 80 %}from-green-500 to-green-600{% elif percentage >= 60 %}from-blue-500 to-blue-600{% elif percentage >= 40 %}from-yellow-500 to-yellow-600{% else %}from-red-500 to-red-600{% endif %} text-white rounded-lg p-6 mb-6 animate-fade-in">
+        <div class="text-center">
+            {% if percentage >= 80 %}
+                <h2 class="text-xl font-bold mb-2">🌟 환상적이에요!</h2>
+                <p>정말 대단한 실력이네요. 퀴즈 마스터라고 불러도 될 것 같아요!</p>
+            {% elif percentage >= 60 %}
+                <h2 class="text-xl font-bold mb-2">👏 잘하셨어요!</h2>
+                <p>좋은 성과를 거두셨네요. 조금만 더 노력하면 완벽할 것 같아요!</p>
+            {% elif percentage >= 40 %}
+                <h2 class="text-xl font-bold mb-2">😊 괜찮아요!</h2>
+                <p>나쁘지 않은 결과예요. 다음에는 더 좋은 점수를 받을 수 있을 거예요!</p>
+            {% else %}
+                <h2 class="text-xl font-bold mb-2">💪 화이팅!</h2>
+                <p>이번엔 아쉬웠지만 포기하지 마세요. 다시 도전해보면 분명 더 좋은 결과가 있을 거예요!</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 순위 정보 -->
+    {% if total_participants > 1 %}
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6 animate-fade-in">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <span class="text-xl mr-2">🏅</span>
+            순위 정보
+        </h2>
+        <div class="flex items-center justify-between">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-500">{{ rank }}</div>
+                <div class="text-sm text-gray-600">내 순위</div>
+            </div>
+            <div class="text-gray-300">|</div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-gray-600">{{ total_participants }}</div>
+                <div class="text-sm text-gray-600">총 참가자</div>
+            </div>
+        </div>
+        
+        {% if rank == 1 %}
+        <div class="mt-4 p-3 bg-yellow-50 rounded-lg text-center">
+            <span class="text-2xl">👑</span>
+            <p class="text-yellow-800 font-medium">축하합니다! 1등을 하셨어요!</p>
+        </div>
+        {% elif rank <= 3 %}
+        <div class="mt-4 p-3 bg-orange-50 rounded-lg text-center">
+            <span class="text-2xl">🥉</span>
+            <p class="text-orange-800 font-medium">상위 3위 안에 드셨어요!</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- 상세 답변 내역 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <span class="text-xl mr-2">📝</span>
+            상세 답변 내역
+        </h2>
+        
+        <div class="space-y-4">
+            {% for answer in answers %}
+            <div class="border rounded-lg p-4 {% if answer.is_correct %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="font-medium text-gray-800">
+                        문제 {{ forloop.counter }}
+                    </div>
+                    <div class="flex items-center">
+                        {% if answer.is_correct %}
+                            <span class="text-green-600">✅ 정답</span>
+                        {% else %}
+                            <span class="text-red-600">❌ 오답</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <p class="text-gray-700 mb-3">{{ answer.question.text }}</p>
+                
+                <div class="text-sm">
+                    <div class="mb-1">
+                        <span class="font-medium">당신의 답변:</span>
+                        <span class="{% if answer.is_correct %}text-green-700{% else %}text-red-700{% endif %}">
+                            {{ answer.selected_choice.text }}
+                        </span>
+                    </div>
+                    {% if not answer.is_correct %}
+                    <div>
+                        <span class="font-medium">정답:</span>
+                        <span class="text-green-700">
+                            {% for choice in answer.question.choices.all %}
+                                {% if choice.is_correct %}{{ choice.text }}{% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- 공유 섹션 -->
+    <div class="bg-gray-100 rounded-lg p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 text-center">
+            <span class="text-xl mr-2">📱</span>
+            결과 공유하기
+        </h2>
+        <div class="text-center">
+            <p class="text-gray-600 mb-4">친구들에게 자랑해보세요!</p>
+            <button onclick="shareResult()" 
+                    class="bg-primary-500 text-white py-3 px-6 rounded-lg hover:bg-primary-600 transition-colors touch-feedback">
+                <span class="mr-2">📤</span>
+                결과 공유하기
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_actions %}
+<div class="grid grid-cols-2 gap-3">
+    <a href="{% url 'quiz:quiz_detail' user_session.quiz.id %}" 
+       class="bg-primary-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-primary-600 transition-colors touch-feedback">
+        <span class="mr-1">🔄</span>
+        다시 도전
+    </a>
+    <a href="{% url 'quiz:home' %}" 
+       class="bg-gray-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-600 transition-colors touch-feedback">
+        <span class="mr-1">🏠</span>
+        홈으로
+    </a>
+</div>
+
+{% if user_session.quiz.user_sessions.count > 1 %}
+<div class="mt-3">
+    <a href="{% url 'quiz:leaderboard' user_session.quiz.id %}" 
+       class="w-full bg-yellow-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-yellow-600 transition-colors touch-feedback block">
+        <span class="mr-2">🏆</span>
+        전체 순위 보기
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 템플릿 데이터를 JavaScript 변수로 전달
+const quizData = {
+    title: '{{ user_session.quiz.title|escapejs }}',
+    correctAnswers: {{ correct_answers }},
+    totalQuestions: {{ total_questions }},
+    percentage: {{ percentage|floatformat:1 }}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 점수 바 애니메이션
+    const scoreBar = document.getElementById('score-bar');
+    if (scoreBar) {
+        setTimeout(() => {
+            scoreBar.style.width = quizData.percentage + '%';
+        }, 500);
+    }
+    
+    // 축하 효과 (높은 점수일 때)
+    {% if percentage >= 80 %}
+    setTimeout(() => {
+        createCelebration();
+    }, 1000);
+    {% endif %}
+});
+
+// 결과 공유 함수
+function shareResult() {
+    const shareText = '나 몰라 퀴즈 "' + quizData.title + '" 결과: ' + 
+                     quizData.correctAnswers + '/' + quizData.totalQuestions + 
+                     '개 정답 (' + quizData.percentage + '%)! 너도 도전해보지 않을래? 🤔';
+    
+    if (navigator.share) {
+        navigator.share({
+            title: '나 몰라 퀴즈 결과',
+            text: shareText,
+            url: window.location.origin
+        }).catch(console.error);
+    } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText + ' ' + window.location.origin)
+            .then(() => {
+                alert('결과가 클립보드에 복사되었습니다!');
+                hapticFeedback();
+            })
+            .catch(() => {
+                fallbackShare(shareText);
+            });
+    } else {
+        fallbackShare(shareText);
+    }
+}
+
+// 클립보드 복사 폴백
+function fallbackShare(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text + ' ' + window.location.origin;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert('결과가 클립보드에 복사되었습니다!');
+        hapticFeedback();
+    } catch (err) {
+        alert('공유 링크: ' + window.location.origin);
+    }
+    document.body.removeChild(textArea);
+}
+
+// 축하 효과
+function createCelebration() {
+    const emojis = ['🎉', '🏆', '⭐', '🌟', '✨'];
+    
+    for (let i = 0; i < 15; i++) {
+        setTimeout(() => {
+            const emoji = document.createElement('div');
+            emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            emoji.style.position = 'fixed';
+            emoji.style.left = Math.random() * window.innerWidth + 'px';
+            emoji.style.top = '-50px';
+            emoji.style.fontSize = '24px';
+            emoji.style.zIndex = '1000';
+            emoji.style.pointerEvents = 'none';
+            emoji.style.animation = 'fall 3s linear forwards';
+            
+            document.body.appendChild(emoji);
+            
+            setTimeout(() => {
+                if (emoji.parentNode) {
+                    emoji.parentNode.removeChild(emoji);
+                }
+            }, 3000);
+        }, i * 200);
+    }
+}
+
+// CSS 애니메이션 추가
+const style = document.createElement('style');
+style.textContent = '@keyframes fall { to { transform: translateY(' + (window.innerHeight + 100) + 'px) rotate(360deg); opacity: 0; } }';
+document.head.appendChild(style);
+</script>
+{% endblock %} 

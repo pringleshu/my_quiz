@@ -1,0 +1,115 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}나 몰라 퀴즈 - 메인{% endblock %}
+
+{% block content %}
+<div class="p-4">
+    <!-- 헤더 섹션 -->
+    <div class="text-center mb-8 animate-fade-in">
+        <div class="mb-4">
+            <span class="text-6xl emoji-bounce">🤔</span>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">나 몰라 퀴즈</h1>
+        <p class="text-gray-600">당신은 얼마나 잘 맞출 수 있을까요?</p>
+    </div>
+    
+    <!-- 통계 카드 -->
+    {% if total_quizzes > 0 %}
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-white rounded-lg p-4 text-center card-shadow">
+            <div class="text-2xl font-bold text-primary-500">{{ total_quizzes }}</div>
+            <div class="text-sm text-gray-600">활성 퀴즈</div>
+        </div>
+        <div class="bg-white rounded-lg p-4 text-center card-shadow">
+            <div class="text-2xl font-bold text-green-500">∞</div>
+            <div class="text-sm text-gray-600">도전 기회</div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 퀴즈 목록 -->
+    {% if quizzes %}
+        <div class="space-y-4">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <span class="text-2xl mr-2">🎯</span>
+                도전할 퀴즈를 선택하세요
+            </h2>
+            
+            {% for quiz in quizzes %}
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden touch-feedback animate-fade-in"
+                <div class="gradient-quiz p-1">
+                    <div class="bg-white rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-gray-800">{{ quiz.title }}</h3>
+                            <span class="text-2xl">🎲</span>
+                        </div>
+                        
+                        {% if quiz.description %}
+                        <p class="text-gray-600 text-sm mb-4">{{ quiz.description }}</p>
+                        {% endif %}
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                            <span>📝 {{ quiz.questions.count }}개 문제</span>
+                            <span>👥 {{ quiz.user_sessions.count }}명 참여</span>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <a href="{% url 'quiz:quiz_detail' quiz.id %}" 
+                               class="flex-1 bg-primary-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-primary-600 transition-colors touch-feedback">
+                                시작하기
+                            </a>
+                            <a href="{% url 'quiz:leaderboard' quiz.id %}" 
+                               class="bg-gray-100 text-gray-600 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors touch-feedback">
+                                🏆
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- 퀴즈가 없는 경우 -->
+        <div class="text-center py-12 animate-fade-in">
+            <div class="text-6xl mb-4">😴</div>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">아직 퀴즈가 없어요</h3>
+            <p class="text-gray-500 mb-6">관리자가 퀴즈를 추가할 때까지 기다려주세요!</p>
+            
+            {% if user.is_authenticated %}
+            <a href="{% url 'admin:index' %}" 
+               class="inline-block bg-primary-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-600 transition-colors touch-feedback">
+                관리자 패널로 이동
+            </a>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <!-- 도움말 섹션 -->
+    <div class="mt-8 bg-blue-50 rounded-lg p-4">
+        <h3 class="font-semibold text-blue-800 mb-2">
+            <span class="text-lg mr-1">💡</span>
+            사용 방법
+        </h3>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li>• 원하는 퀴즈를 선택하고 닉네임을 입력하세요</li>
+            <li>• 각 질문에 대해 정답이라고 생각하는 답을 선택하세요</li>
+            <li>• 모든 문제를 풀고 나면 결과를 확인할 수 있어요</li>
+            <li>• 리더보드에서 다른 사람들과 비교해보세요!</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_actions %}
+{% if user.is_authenticated %}
+<a href="{% url 'admin:index' %}" 
+   class="w-full bg-gray-800 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-900 transition-colors touch-feedback block">
+    <span class="mr-2">⚙️</span>
+    퀴즈 관리하기
+</a>
+{% else %}
+<div class="text-center text-gray-500 text-sm">
+    <p>관리자로 로그인하여 퀴즈를 관리하세요</p>
+</div>
+{% endif %}
+{% endblock %} 

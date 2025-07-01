@@ -1,0 +1,260 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}{{ question_number }}/{{ total_questions }} - {{ user_session.quiz.title }}{% endblock %}
+
+{% block content %}
+<div class="p-4">
+    <!-- 진행률 표시 -->
+    <div class="mb-6 animate-fade-in">
+        <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>{{ user_session.nickname }}</span>
+            <span>{{ question_number }} / {{ total_questions }}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full progress-bar" 
+                 id="progress-bar"></div>
+        </div>
+        <div class="text-center mt-2">
+            <span class="text-xs text-gray-500">{{ progress_percentage|floatformat:0 }}% 완료</span>
+        </div>
+    </div>
+    
+    <!-- 현재 점수 -->
+    <div class="bg-white rounded-lg p-4 mb-6 shadow-sm animate-fade-in">
+        <div class="flex items-center justify-center space-x-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-500">{{ user_session.score }}</div>
+                <div class="text-xs text-gray-600">현재 점수</div>
+            </div>
+            <div class="text-gray-300">|</div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-500">{{ total_questions }}</div>
+                <div class="text-xs text-gray-600">총 문제</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 질문 카드 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6 animate-bounce-in">
+        <div class="text-center mb-4">
+            <span class="text-4xl">🤔</span>
+        </div>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 text-center leading-relaxed">
+            {{ question.text }}
+        </h2>
+        <div class="text-center">
+            <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                문제 {{ question_number }}
+            </span>
+        </div>
+    </div>
+    
+    <!-- 선택지 -->
+    <div class="space-y-3 mb-6">
+        {% for choice in choices %}
+        <button type="button" 
+                class="choice-option w-full bg-white border-2 border-gray-200 rounded-lg p-4 text-left hover:border-primary-500 hover:bg-primary-50 transition-all touch-feedback animate-fade-in"
+                data-choice-id="{{ choice.id }}"
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 border-2 border-gray-300 rounded-full flex items-center justify-center choice-indicator">
+                    <span class="text-sm font-medium text-gray-500">{{ forloop.counter }}</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-gray-800 font-medium">{{ choice.text }}</p>
+                </div>
+            </div>
+        </button>
+        {% endfor %}
+    </div>
+    
+    <!-- 답변 결과 모달 -->
+    <div id="answer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 mx-4 max-w-sm w-full animate-bounce-in">
+            <div class="text-center">
+                <div id="result-emoji" class="text-6xl mb-4"></div>
+                <h3 id="result-title" class="text-xl font-bold mb-2"></h3>
+                <p id="result-message" class="text-gray-600 mb-4"></p>
+                <div id="correct-answer" class="bg-gray-100 rounded-lg p-3 mb-4 hidden">
+                    <p class="text-sm text-gray-700">
+                        <strong>정답:</strong> <span id="correct-answer-text"></span>
+                    </p>
+                </div>
+                <button id="next-button" 
+                        class="w-full bg-primary-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-600 transition-colors touch-feedback">
+                    다음 문제
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_actions %}
+<div class="text-center text-gray-500 text-sm">
+    <p>선택지를 눌러 답변해주세요</p>
+    <div class="mt-2 flex justify-center space-x-2">
+        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse"></span>
+        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
+        <span class="w-2 h-2 bg-gray-300 rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const choiceButtons = document.querySelectorAll('.choice-option');
+    const answerModal = document.getElementById('answer-modal');
+    const resultEmoji = document.getElementById('result-emoji');
+    const resultTitle = document.getElementById('result-title');
+    const resultMessage = document.getElementById('result-message');
+    const correctAnswerDiv = document.getElementById('correct-answer');
+    const correctAnswerText = document.getElementById('correct-answer-text');
+    const nextButton = document.getElementById('next-button');
+    const progressBar = document.getElementById('progress-bar');
+    
+    // 진행률 설정
+    progressBar.style.width = '{{ progress_percentage }}%';
+    
+    let selectedChoice = null;
+    let isSubmitting = false;
+    
+    // 선택지 클릭 이벤트
+    choiceButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            if (isSubmitting) return;
+            
+            // 이전 선택 제거
+            choiceButtons.forEach(btn => {
+                btn.classList.remove('border-primary-500', 'bg-primary-50');
+                btn.classList.add('border-gray-200');
+                const indicator = btn.querySelector('.choice-indicator');
+                indicator.classList.remove('bg-primary-500', 'text-white');
+                indicator.classList.add('border-gray-300');
+                indicator.querySelector('span').classList.remove('text-white');
+                indicator.querySelector('span').classList.add('text-gray-500');
+            });
+            
+            // 현재 선택 표시
+            this.classList.remove('border-gray-200');
+            this.classList.add('border-primary-500', 'bg-primary-50');
+            const indicator = this.querySelector('.choice-indicator');
+            indicator.classList.remove('border-gray-300');
+            indicator.classList.add('bg-primary-500', 'text-white');
+            indicator.querySelector('span').classList.remove('text-gray-500');
+            indicator.querySelector('span').classList.add('text-white');
+            
+            selectedChoice = this.dataset.choiceId;
+            
+            // 햅틱 피드백
+            hapticFeedback();
+            
+            // 답변 제출
+            submitAnswer();
+        });
+    });
+    
+    // 답변 제출 함수
+    function submitAnswer() {
+        if (!selectedChoice || isSubmitting) return;
+        
+        isSubmitting = true;
+        showLoading();
+        
+        // 모든 선택지 비활성화
+        choiceButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.classList.add('opacity-60');
+        });
+        
+        fetch(`/submit/{{ user_session.session_id }}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                choice_id: selectedChoice
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            
+            if (data.success) {
+                showResult(data);
+            } else {
+                alert(data.error || '오류가 발생했습니다.');
+                isSubmitting = false;
+                // 선택지 다시 활성화
+                choiceButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60');
+                });
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            alert('네트워크 오류가 발생했습니다.');
+            isSubmitting = false;
+            // 선택지 다시 활성화
+            choiceButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
+            });
+        });
+    }
+    
+    // 결과 표시 함수
+    function showResult(data) {
+        if (data.is_correct) {
+            resultEmoji.textContent = '🎉';
+            resultTitle.textContent = '정답입니다!';
+            resultTitle.className = 'text-xl font-bold mb-2 text-green-600';
+            resultMessage.textContent = '훌륭해요! 다음 문제로 넘어가세요.';
+            correctAnswerDiv.classList.add('hidden');
+        } else {
+            resultEmoji.textContent = '😅';
+            resultTitle.textContent = '틀렸어요';
+            resultTitle.className = 'text-xl font-bold mb-2 text-red-600';
+            resultMessage.textContent = '아쉽지만 다음 문제에서 화이팅!';
+            correctAnswerText.textContent = data.correct_answer;
+            correctAnswerDiv.classList.remove('hidden');
+        }
+        
+        // 다음 버튼 설정
+        nextButton.onclick = function() {
+            window.location.href = data.next_url;
+        };
+        
+        // 모달 표시
+        answerModal.classList.remove('hidden');
+        
+        // 햅틱 피드백
+        if (data.is_correct) {
+            // 정답일 때 더 강한 진동
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        } else {
+            hapticFeedback();
+        }
+    }
+    
+    // 키보드 이벤트 (1,2,3,4 키로 선택)
+    document.addEventListener('keydown', function(e) {
+        if (isSubmitting) return;
+        
+        const key = parseInt(e.key);
+        if (key >= 1 && key <= choiceButtons.length) {
+            choiceButtons[key - 1].click();
+        }
+    });
+    
+    // 모달 외부 클릭 시 닫기 방지
+    answerModal.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+</script>
+{% endblock %} 

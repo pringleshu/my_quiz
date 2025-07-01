@@ -1,0 +1,170 @@
+{% extends 'quiz/base.html' %}
+
+{% block title %}{{ quiz.title }} - 나 몰라 퀴즈{% endblock %}
+
+{% block content %}
+<div class="p-4">
+    <!-- 퀴즈 헤더 -->
+    <div class="text-center mb-6 animate-fade-in">
+        <div class="mb-4">
+            <span class="text-5xl">🎯</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ quiz.title }}</h1>
+        {% if quiz.description %}
+        <p class="text-gray-600">{{ quiz.description }}</p>
+        {% endif %}
+    </div>
+    
+    <!-- 퀴즈 정보 카드 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6 animate-fade-in">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <span class="text-xl mr-2">📊</span>
+            퀴즈 정보
+        </h2>
+        
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-500">{{ question_count }}</div>
+                <div class="text-sm text-gray-600">문제 수</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-500">{{ stats.total_attempts }}</div>
+                <div class="text-sm text-gray-600">도전자 수</div>
+            </div>
+        </div>
+        
+        {% if stats.total_completions > 0 %}
+        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+            <div class="text-center">
+                <div class="text-lg font-semibold text-purple-500">{{ stats.average_score|floatformat:1 }}</div>
+                <div class="text-sm text-gray-600">평균 점수</div>
+            </div>
+            <div class="text-center">
+                <div class="text-lg font-semibold text-red-500">{{ stats.highest_score }}</div>
+                <div class="text-sm text-gray-600">최고 점수</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 시작하기 폼 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 animate-fade-in">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">
+            <span class="text-xl mr-2">👤</span>
+            시작하기
+        </h2>
+        
+        <form method="post" action="{% url 'quiz:start_quiz' quiz.id %}">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="nickname" class="block text-sm font-medium text-gray-700 mb-2">
+                    닉네임을 입력하세요
+                </label>
+                <input type="text" 
+                       id="nickname" 
+                       name="nickname" 
+                       maxlength="50"
+                       placeholder="예: 퀴즈마스터"
+                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                       required>
+            </div>
+            
+            <div class="mb-4 p-4 bg-yellow-50 rounded-lg">
+                <h3 class="font-medium text-yellow-800 mb-2">
+                    <span class="mr-1">⚠️</span>
+                    주의사항
+                </h3>
+                <ul class="text-sm text-yellow-700 space-y-1">
+                    <li>• 한 번 시작하면 중간에 멈출 수 없어요</li>
+                    <li>• 각 문제마다 하나의 답만 선택할 수 있어요</li>
+                    <li>• 답을 제출한 후에는 수정할 수 없어요</li>
+                    <li>• 솔직하게 답변해주세요! 🤔</li>
+                </ul>
+            </div>
+            
+            <button type="submit" 
+                    class="w-full gradient-quiz text-white py-4 px-6 rounded-lg font-semibold text-lg hover:opacity-90 transition-all touch-feedback">
+                <span class="mr-2">🚀</span>
+                퀴즈 시작하기
+            </button>
+        </form>
+    </div>
+    
+    <!-- 리더보드 미리보기 -->
+    {% if stats.total_completions > 0 %}
+    <div class="mt-6">
+        <a href="{% url 'quiz:leaderboard' quiz.id %}" 
+           class="block bg-gray-800 text-white p-4 rounded-lg hover:bg-gray-900 transition-colors touch-feedback">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-semibold">🏆 리더보드 보기</div>
+                    <div class="text-sm text-gray-400">다른 사람들의 점수를 확인해보세요</div>
+                </div>
+                <div class="text-2xl">→</div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- 팁 섹션 -->
+    <div class="mt-6 bg-blue-50 rounded-lg p-4">
+        <h3 class="font-semibold text-blue-800 mb-2">
+            <span class="text-lg mr-1">💡</span>
+            퀴즈 팁
+        </h3>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li>• 첫 번째 직감을 믿어보세요</li>
+            <li>• 너무 오래 고민하지 마세요</li>
+            <li>• 재미있게 즐기는 것이 중요해요</li>
+            <li>• 점수보다는 과정을 즐겨보세요</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom_actions %}
+<a href="{% url 'quiz:home' %}" 
+   class="w-full bg-gray-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-600 transition-colors touch-feedback block">
+    <span class="mr-2">←</span>
+    다른 퀴즈 보기
+</a>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nicknameInput = document.getElementById('nickname');
+    const form = document.querySelector('form');
+    
+    // 닉네임 입력 시 실시간 검증
+    nicknameInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        if (value.length > 0) {
+            submitButton.classList.remove('opacity-50');
+            submitButton.classList.add('cursor-pointer');
+        } else {
+            submitButton.classList.add('opacity-50');
+            submitButton.classList.remove('cursor-pointer');
+        }
+    });
+    
+    // 폼 제출 시 로딩 표시
+    form.addEventListener('submit', function(e) {
+        const nickname = nicknameInput.value.trim();
+        if (!nickname) {
+            e.preventDefault();
+            alert('닉네임을 입력해주세요!');
+            return;
+        }
+        
+        showLoading();
+        hapticFeedback();
+    });
+    
+    // 자동 포커스
+    nicknameInput.focus();
+});
+</script>
+{% endblock %} 
